@@ -66,7 +66,7 @@ export default function Home() {
           <h1 className="text-3xl font-bold tracking-tight">见面</h1>
         </div>
         <p className="text-gray-400 text-sm">
-          Free video meetings — no account required
+          认识你的团队
         </p>
       </div>
 
