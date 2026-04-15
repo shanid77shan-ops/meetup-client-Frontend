@@ -123,10 +123,39 @@ function VideoTile({
 }
 
 const FAKE_PARTICIPANTS = [
-  { id: "fake-1", name: "亚历克斯", color: "bg-purple-600", audio: true, video: false },
-  { id: "fake-2", name: "莎拉", color: "bg-green-600", audio: false, video: false },
-  { id: "fake-3", name: "詹姆斯", color: "bg-orange-500", audio: true, video: false },
+  { id: "fake-1", name: "亚历克斯", color: "bg-purple-600" },
+  { id: "fake-2", name: "莎拉", color: "bg-green-600" },
+  { id: "fake-3", name: "詹姆斯", color: "bg-orange-500" },
 ];
+
+function MicIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+    </svg>
+  );
+}
+function MicOffIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+    </svg>
+  );
+}
+function CamIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.889L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+    </svg>
+  );
+}
+function CamOffIcon() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+    </svg>
+  );
+}
 
 function LobbyScreen({
   userName,
@@ -137,6 +166,7 @@ function LobbyScreen({
   onToggleVideo,
   onJoin,
   roomCode,
+  lobbyPeers,
 }: {
   userName: string;
   localStream: MediaStream | null;
@@ -146,8 +176,12 @@ function LobbyScreen({
   onToggleVideo: () => void;
   onJoin: () => void;
   roomCode: string;
+  lobbyPeers: { id: string; name: string }[];
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [fakeStates, setFakeStates] = useState(
+    FAKE_PARTICIPANTS.map((p) => ({ id: p.id, audio: p.id !== "fake-2", video: false }))
+  );
 
   useEffect(() => {
     if (videoRef.current && localStream) {
@@ -155,7 +189,19 @@ function LobbyScreen({
     }
   }, [localStream]);
 
+  const toggleFakeAudio = (id: string) => {
+    setFakeStates((prev) => prev.map((s) => s.id === id ? { ...s, audio: !s.audio } : s));
+  };
+  const toggleFakeVideo = (id: string) => {
+    setFakeStates((prev) => prev.map((s) => s.id === id ? { ...s, video: !s.video } : s));
+  };
+
   const initials = userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+
+  const allLobbyPeople = [
+    ...FAKE_PARTICIPANTS,
+    ...lobbyPeers.map((p) => ({ id: p.id, name: p.name, color: "bg-blue-600" })),
+  ];
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
@@ -174,89 +220,75 @@ function LobbyScreen({
         <div className="flex-1 flex flex-col items-center gap-4">
           <p className="text-gray-400 text-sm">Your preview</p>
 
-          {/* Camera preview */}
           <div className="relative w-full max-w-sm aspect-video bg-[#1a1a1a] rounded-2xl overflow-hidden flex items-center justify-center">
             {localStream && videoOn ? (
               <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
             ) : (
               <div className="flex flex-col items-center gap-2">
-                <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold">
-                  {initials}
-                </div>
+                <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold">{initials}</div>
                 <span className="text-gray-400 text-sm">Camera off</span>
               </div>
             )}
-            <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md">
-              {userName} (You)
-            </div>
+            <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md">{userName} (You)</div>
           </div>
 
-          {/* Controls */}
+          {/* Your controls */}
           <div className="flex gap-3">
-            <button
-              onClick={onToggleAudio}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${audioOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`}
-              title={audioOn ? "Mute" : "Unmute"}
-            >
-              {audioOn ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
-                </svg>
-              )}
+            <button onClick={onToggleAudio} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${audioOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`} title={audioOn ? "Mute" : "Unmute"}>
+              {audioOn ? <MicIcon /> : <MicOffIcon />}
             </button>
-            <button
-              onClick={onToggleVideo}
-              className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${videoOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`}
-              title={videoOn ? "Turn off camera" : "Turn on camera"}
-            >
-              {videoOn ? (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.889L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-                </svg>
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
-              )}
+            <button onClick={onToggleVideo} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${videoOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`} title={videoOn ? "Camera off" : "Camera on"}>
+              {videoOn ? <CamIcon /> : <CamOffIcon />}
             </button>
           </div>
         </div>
 
-        {/* Right — meeting info + fake participants */}
+        {/* Right — participants + join */}
         <div className="flex-1 flex flex-col gap-4 w-full max-w-sm">
           <div>
             <p className="text-gray-400 text-sm mb-1">Room code</p>
             <p className="font-mono text-white bg-white/5 border border-white/10 px-3 py-2 rounded-lg text-sm">{roomCode}</p>
           </div>
 
-          {/* Fake participants already in */}
           <div>
-            <p className="text-gray-400 text-sm mb-2">Already in the meeting</p>
-            <div className="flex flex-col gap-2">
-              {FAKE_PARTICIPANTS.map((p) => (
-                <div key={p.id} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-                  <div className={`w-9 h-9 rounded-full ${p.color} flex items-center justify-center text-sm font-bold flex-shrink-0`}>
-                    {p.name[0]}
+            <p className="text-gray-400 text-sm mb-2">
+              In the meeting <span className="text-white font-medium">({allLobbyPeople.length})</span>
+            </p>
+            <div className="flex flex-col gap-2 max-h-56 overflow-y-auto">
+              {allLobbyPeople.map((p) => {
+                const fakeState = fakeStates.find((s) => s.id === p.id);
+                const isFake = !!fakeState;
+                const audio = isFake ? fakeState!.audio : true;
+                const video = isFake ? fakeState!.video : false;
+                return (
+                  <div key={p.id} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
+                    <div className={`w-9 h-9 rounded-full ${p.color} flex items-center justify-center text-sm font-bold flex-shrink-0`}>
+                      {p.name[0]}
+                    </div>
+                    <span className="text-sm text-white flex-1">{p.name}</span>
+                    {/* Mic toggle */}
+                    <button
+                      onClick={() => isFake && toggleFakeAudio(p.id)}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${audio ? "bg-white/10 hover:bg-white/20" : "bg-red-600/80 hover:bg-red-600"} ${!isFake ? "opacity-40 cursor-default" : "cursor-pointer"}`}
+                      title={audio ? "Mute" : "Unmute"}
+                    >
+                      {audio ? <MicIcon /> : <MicOffIcon />}
+                    </button>
+                    {/* Camera toggle */}
+                    <button
+                      onClick={() => isFake && toggleFakeVideo(p.id)}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${video ? "bg-white/10 hover:bg-white/20" : "bg-red-600/80 hover:bg-red-600"} ${!isFake ? "opacity-40 cursor-default" : "cursor-pointer"}`}
+                      title={video ? "Camera off" : "Camera on"}
+                    >
+                      {video ? <CamIcon /> : <CamOffIcon />}
+                    </button>
                   </div>
-                  <span className="text-sm text-white flex-1">{p.name}</span>
-                  <div className="flex gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${p.audio ? "bg-green-400" : "bg-red-500"}`} title={p.audio ? "Mic on" : "Muted"} />
-                    <span className={`w-2 h-2 rounded-full ${p.video ? "bg-green-400" : "bg-gray-600"}`} title={p.video ? "Camera on" : "Camera off"} />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
-          <button
-            onClick={onJoin}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors text-base"
-          >
+          <button onClick={onJoin} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors text-base">
             Join Now
           </button>
         </div>
@@ -277,6 +309,8 @@ export default function RoomPage() {
   const peersRef = useRef<Map<string, Peer>>(new Map());
 
   const [inLobby, setInLobby] = useState(true);
+  const [lobbyPeers, setLobbyPeers] = useState<{ id: string; name: string }[]>([]);
+  const lobbySocketRef = useRef<Socket | null>(null);
   const [peers, setPeers] = useState<Peer[]>([]);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [audioOn, setAudioOn] = useState(true);
@@ -326,7 +360,30 @@ export default function RoomPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Connect to lobby socket so real joiners appear in the waiting list
+  useEffect(() => {
+    if (!inLobby) return;
+    const socket = io(SOCKET_URL);
+    lobbySocketRef.current = socket;
+    socket.emit("join-room", { roomCode, userName: `${userName}` });
+    socket.on("existing-users", (users: { id: string; name: string }[]) => {
+      setLobbyPeers(users);
+    });
+    socket.on("user-joined", (user: { id: string; name: string }) => {
+      setLobbyPeers((prev) => [...prev.filter((p) => p.id !== user.id), user]);
+    });
+    socket.on("user-left", ({ id }: { id: string }) => {
+      setLobbyPeers((prev) => prev.filter((p) => p.id !== id));
+    });
+    return () => {
+      socket.disconnect();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inLobby]);
+
   const handleJoinFromLobby = () => {
+    lobbySocketRef.current?.disconnect();
+    lobbySocketRef.current = null;
     setInLobby(false);
   };
 
@@ -554,6 +611,7 @@ export default function RoomPage() {
         onToggleVideo={toggleVideo}
         onJoin={handleJoinFromLobby}
         roomCode={roomCode}
+        lobbyPeers={lobbyPeers}
       />
     );
   }
