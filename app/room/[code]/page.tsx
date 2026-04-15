@@ -407,7 +407,7 @@ export default function RoomPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.889L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
             </div>
-            <span className="font-semibold text-sm">MeetUp</span>
+            <span className="font-semibold text-sm">见面</span>
           </div>
           <button
             onClick={copyRoomCode}

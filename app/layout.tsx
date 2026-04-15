@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "MeetUp - Video Meetings",
-  description: "Simple video meetings for everyone",
+  title: "见面 - Video Meetings",
+  description: "Free face-to-face video meetings for everyone",
 };
 
 export default function RootLayout({
