@@ -66,13 +66,23 @@ function VideoTile({
   audioOn = true,
   videoOn = true,
   dragon,
+  fakeAudio,
+  fakeVideo,
+  onToggleFakeAudio,
+  onToggleFakeVideo,
+  showSelf = false,
 }: {
   stream?: MediaStream;
   name: string;
   muted?: boolean;
   audioOn?: boolean;
   videoOn?: boolean;
-  dragon?: string;
+  dragon?: boolean;
+  fakeAudio?: boolean;
+  fakeVideo?: boolean;
+  onToggleFakeAudio?: () => void;
+  onToggleFakeVideo?: () => void;
+  showSelf?: boolean;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -83,16 +93,21 @@ function VideoTile({
   }, [stream]);
 
   const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
+  const isFake = !!dragon;
 
   return (
-    <div className="relative bg-[#1a1a1a] rounded-xl overflow-hidden aspect-video flex items-center justify-center">
-      {stream && videoOn ? (
+    <div className="relative bg-[#1a1a1a] rounded-xl overflow-hidden aspect-video flex items-center justify-center group">
+      {/* Video: only show if it's a real stream, video is on, and not a fake tile */}
+      {stream && videoOn && !isFake && showSelf ? (
+        <video ref={videoRef} autoPlay playsInline muted={muted} className="w-full h-full object-cover" />
+      ) : stream && videoOn && !isFake && !showSelf ? (
         <video ref={videoRef} autoPlay playsInline muted={muted} className="w-full h-full object-cover" />
       ) : (
         <div className="flex flex-col items-center gap-2">
-          {dragon ? (
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-900 to-yellow-700 flex items-center justify-center text-4xl shadow-lg border-2 border-yellow-500/40">
-              {dragon}
+          {isFake ? (
+            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-yellow-500/60 shadow-lg">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/dragon.png" alt="dragon" className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold">
@@ -101,16 +116,46 @@ function VideoTile({
           )}
         </div>
       )}
-      {/* Always-on mic/video indicators for fake participants */}
-      {dragon && (
-        <div className="absolute top-2 right-2 flex gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-green-400" title="Mic on" />
-          <span className="w-2 h-2 rounded-full bg-green-400" title="Camera on" />
+
+      {/* Fake participant: mic (green/on) + camera (red/off) buttons */}
+      {isFake && (
+        <div className="absolute bottom-2 right-2 flex gap-1.5">
+          <button
+            onClick={onToggleFakeAudio}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${fakeAudio ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+            title={fakeAudio ? "Mute" : "Unmute"}
+          >
+            {fakeAudio ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15zM17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+              </svg>
+            )}
+          </button>
+          <button
+            onClick={onToggleFakeVideo}
+            className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${fakeVideo ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}
+            title={fakeVideo ? "Camera off" : "Camera on"}
+          >
+            {fakeVideo ? (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.889L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+              </svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+              </svg>
+            )}
+          </button>
         </div>
       )}
+
       {/* Name badge */}
       <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
-        {!audioOn && !dragon && (
+        {!audioOn && !isFake && (
           <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M5.293 5.293a1 1 0 011.414 0L10 8.586l3.293-3.293a1 1 0 111.414 1.414L11.414 10l3.293 3.293a1 1 0 01-1.414 1.414L10 11.414l-3.293 3.293a1 1 0 01-1.414-1.414L8.586 10 5.293 6.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
@@ -122,9 +167,9 @@ function VideoTile({
 }
 
 const FAKE_PARTICIPANTS = [
-  { id: "fake-1", name: "亚历克斯", dragon: "🐲" },
-  { id: "fake-2", name: "莎拉", dragon: "🐉" },
-  { id: "fake-3", name: "詹姆斯", dragon: "🐲" },
+  { id: "fake-1", name: "亚历克斯", dragon: true },
+  { id: "fake-2", name: "莎拉", dragon: true },
+  { id: "fake-3", name: "詹姆斯", dragon: true },
 ];
 
 function MicIcon() {
@@ -189,10 +234,9 @@ function LobbyScreen({
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
       {/* Logo */}
       <div className="flex items-center gap-2 mb-8">
-        <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.889L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-          </svg>
+        <div className="w-8 h-8 rounded-lg overflow-hidden border border-yellow-500/40">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/dragon.png" alt="见面" className="w-full h-full object-cover" />
         </div>
         <span className="font-bold text-lg">见面</span>
       </div>
@@ -267,6 +311,13 @@ export default function RoomPage() {
   const [copied, setCopied] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const [roomFull, setRoomFull] = useState(false);
+  const [fakeStates, setFakeStates] = useState(
+    FAKE_PARTICIPANTS.map((p) => ({ id: p.id, audio: true, video: false }))
+  );
+  const toggleFakeAudio = (id: string) =>
+    setFakeStates((prev) => prev.map((s) => s.id === id ? { ...s, audio: !s.audio } : s));
+  const toggleFakeVideo = (id: string) =>
+    setFakeStates((prev) => prev.map((s) => s.id === id ? { ...s, video: !s.video } : s));
 
   const updatePeerState = useCallback(() => {
     setPeers(Array.from(peersRef.current.values()));
@@ -578,9 +629,12 @@ export default function RoomPage() {
   }
 
   const allTiles = [
-    { id: "local", name: `${userName} (You)`, stream: localStream ?? undefined, audioOn, videoOn, muted: true, dragon: undefined },
-    ...FAKE_PARTICIPANTS.map((p) => ({ id: p.id, name: p.name, stream: undefined, audioOn: true, videoOn: false, muted: true, dragon: p.dragon })),
-    ...peers.map((p) => ({ id: p.id, name: p.name, stream: p.stream, audioOn: p.audio, videoOn: p.video, muted: false, dragon: undefined })),
+    { id: "local", name: `${userName} (You)`, stream: localStream ?? undefined, audioOn, videoOn, muted: true, dragon: undefined, fakeAudio: undefined, fakeVideo: undefined },
+    ...FAKE_PARTICIPANTS.map((p) => {
+      const fs = fakeStates.find((s) => s.id === p.id)!;
+      return { id: p.id, name: p.name, stream: undefined, audioOn: fs.audio, videoOn: fs.video, muted: true, dragon: true as boolean | undefined, fakeAudio: fs.audio, fakeVideo: fs.video };
+    }),
+    ...peers.map((p) => ({ id: p.id, name: p.name, stream: p.stream, audioOn: p.audio, videoOn: p.video, muted: false, dragon: undefined, fakeAudio: undefined, fakeVideo: undefined })),
   ];
 
   const gridCols =
@@ -601,10 +655,9 @@ export default function RoomPage() {
         {/* Top bar */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.82v6.36a1 1 0 01-1.447.889L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
-              </svg>
+            <div className="w-7 h-7 rounded-lg overflow-hidden border border-yellow-500/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/dragon.png" alt="见面" className="w-full h-full object-cover" />
             </div>
             <span className="font-semibold text-sm">见面</span>
           </div>
@@ -632,6 +685,11 @@ export default function RoomPage() {
               audioOn={tile.audioOn}
               videoOn={tile.videoOn}
               dragon={tile.dragon}
+              fakeAudio={tile.fakeAudio}
+              fakeVideo={tile.fakeVideo}
+              onToggleFakeAudio={tile.dragon ? () => toggleFakeAudio(tile.id) : undefined}
+              onToggleFakeVideo={tile.dragon ? () => toggleFakeVideo(tile.id) : undefined}
+              showSelf={tile.id === "local"}
             />
           ))}
         </div>
