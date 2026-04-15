@@ -65,12 +65,14 @@ function VideoTile({
   muted = false,
   audioOn = true,
   videoOn = true,
+  dragon,
 }: {
   stream?: MediaStream;
   name: string;
   muted?: boolean;
   audioOn?: boolean;
   videoOn?: boolean;
+  dragon?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -80,40 +82,37 @@ function VideoTile({
     }
   }, [stream]);
 
-  const initials = name
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const initials = name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
 
   return (
     <div className="relative bg-[#1a1a1a] rounded-xl overflow-hidden aspect-video flex items-center justify-center">
       {stream && videoOn ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={muted}
-          className="w-full h-full object-cover"
-        />
+        <video ref={videoRef} autoPlay playsInline muted={muted} className="w-full h-full object-cover" />
       ) : (
         <div className="flex flex-col items-center gap-2">
-          <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold">
-            {initials}
-          </div>
-          <span className="text-gray-400 text-sm">Camera off</span>
+          {dragon ? (
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-900 to-yellow-700 flex items-center justify-center text-4xl shadow-lg border-2 border-yellow-500/40">
+              {dragon}
+            </div>
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-blue-600 flex items-center justify-center text-xl font-bold">
+              {initials}
+            </div>
+          )}
+        </div>
+      )}
+      {/* Always-on mic/video indicators for fake participants */}
+      {dragon && (
+        <div className="absolute top-2 right-2 flex gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-green-400" title="Mic on" />
+          <span className="w-2 h-2 rounded-full bg-green-400" title="Camera on" />
         </div>
       )}
       {/* Name badge */}
       <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md flex items-center gap-1.5">
-        {!audioOn && (
+        {!audioOn && !dragon && (
           <svg className="w-3 h-3 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-            <path
-              fillRule="evenodd"
-              d="M5.293 5.293a1 1 0 011.414 0L10 8.586l3.293-3.293a1 1 0 111.414 1.414L11.414 10l3.293 3.293a1 1 0 01-1.414 1.414L10 11.414l-3.293 3.293a1 1 0 01-1.414-1.414L8.586 10 5.293 6.707a1 1 0 010-1.414z"
-              clipRule="evenodd"
-            />
+            <path fillRule="evenodd" d="M5.293 5.293a1 1 0 011.414 0L10 8.586l3.293-3.293a1 1 0 111.414 1.414L11.414 10l3.293 3.293a1 1 0 01-1.414 1.414L10 11.414l-3.293 3.293a1 1 0 01-1.414-1.414L8.586 10 5.293 6.707a1 1 0 010-1.414z" clipRule="evenodd" />
           </svg>
         )}
         {name}
@@ -123,9 +122,9 @@ function VideoTile({
 }
 
 const FAKE_PARTICIPANTS = [
-  { id: "fake-1", name: "亚历克斯", color: "bg-purple-600" },
-  { id: "fake-2", name: "莎拉", color: "bg-green-600" },
-  { id: "fake-3", name: "詹姆斯", color: "bg-orange-500" },
+  { id: "fake-1", name: "亚历克斯", dragon: "🐲" },
+  { id: "fake-2", name: "莎拉", dragon: "🐉" },
+  { id: "fake-3", name: "詹姆斯", dragon: "🐲" },
 ];
 
 function MicIcon() {
@@ -166,7 +165,6 @@ function LobbyScreen({
   onToggleVideo,
   onJoin,
   roomCode,
-  lobbyPeers,
 }: {
   userName: string;
   localStream: MediaStream | null;
@@ -176,12 +174,8 @@ function LobbyScreen({
   onToggleVideo: () => void;
   onJoin: () => void;
   roomCode: string;
-  lobbyPeers: { id: string; name: string }[];
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [fakeStates, setFakeStates] = useState(
-    FAKE_PARTICIPANTS.map((p) => ({ id: p.id, audio: p.id !== "fake-2", video: false }))
-  );
 
   useEffect(() => {
     if (videoRef.current && localStream) {
@@ -189,19 +183,7 @@ function LobbyScreen({
     }
   }, [localStream]);
 
-  const toggleFakeAudio = (id: string) => {
-    setFakeStates((prev) => prev.map((s) => s.id === id ? { ...s, audio: !s.audio } : s));
-  };
-  const toggleFakeVideo = (id: string) => {
-    setFakeStates((prev) => prev.map((s) => s.id === id ? { ...s, video: !s.video } : s));
-  };
-
   const initials = userName.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
-
-  const allLobbyPeople = [
-    ...FAKE_PARTICIPANTS,
-    ...lobbyPeers.map((p) => ({ id: p.id, name: p.name, color: "bg-blue-600" })),
-  ];
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4">
@@ -215,83 +197,46 @@ function LobbyScreen({
         <span className="font-bold text-lg">见面</span>
       </div>
 
-      <div className="w-full max-w-4xl flex flex-col lg:flex-row gap-6 items-start justify-center">
-        {/* Left — your preview */}
-        <div className="flex-1 flex flex-col items-center gap-4">
-          <p className="text-gray-400 text-sm">Your preview</p>
+      <div className="w-full max-w-sm flex flex-col items-center gap-5">
+        <p className="text-gray-400 text-sm">Ready to join?</p>
 
-          <div className="relative w-full max-w-sm aspect-video bg-[#1a1a1a] rounded-2xl overflow-hidden flex items-center justify-center">
-            {localStream && videoOn ? (
-              <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
-            ) : (
-              <div className="flex flex-col items-center gap-2">
-                <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold">{initials}</div>
-                <span className="text-gray-400 text-sm">Camera off</span>
-              </div>
-            )}
-            <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md">{userName} (You)</div>
-          </div>
-
-          {/* Your controls */}
-          <div className="flex gap-3">
-            <button onClick={onToggleAudio} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${audioOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`} title={audioOn ? "Mute" : "Unmute"}>
-              {audioOn ? <MicIcon /> : <MicOffIcon />}
-            </button>
-            <button onClick={onToggleVideo} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${videoOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`} title={videoOn ? "Camera off" : "Camera on"}>
-              {videoOn ? <CamIcon /> : <CamOffIcon />}
-            </button>
+        {/* Camera preview */}
+        <div className="relative w-full aspect-video bg-[#1a1a1a] rounded-2xl overflow-hidden flex items-center justify-center">
+          {localStream && videoOn ? (
+            <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold">{initials}</div>
+              <span className="text-gray-400 text-sm">Camera off</span>
+            </div>
+          )}
+          <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2 py-1 rounded-md">{userName}</div>
+          {/* Always-on mic/video indicators */}
+          <div className="absolute top-3 right-3 flex gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-400" title="Mic on" />
+            <span className="w-2 h-2 rounded-full bg-green-400" title="Camera on" />
           </div>
         </div>
 
-        {/* Right — participants + join */}
-        <div className="flex-1 flex flex-col gap-4 w-full max-w-sm">
-          <div>
-            <p className="text-gray-400 text-sm mb-1">Room code</p>
-            <p className="font-mono text-white bg-white/5 border border-white/10 px-3 py-2 rounded-lg text-sm">{roomCode}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-400 text-sm mb-2">
-              In the meeting <span className="text-white font-medium">({allLobbyPeople.length})</span>
-            </p>
-            <div className="flex flex-col gap-2 max-h-56 overflow-y-auto">
-              {allLobbyPeople.map((p) => {
-                const fakeState = fakeStates.find((s) => s.id === p.id);
-                const isFake = !!fakeState;
-                const audio = isFake ? fakeState!.audio : true;
-                const video = isFake ? fakeState!.video : false;
-                return (
-                  <div key={p.id} className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl px-3 py-2">
-                    <div className={`w-9 h-9 rounded-full ${p.color} flex items-center justify-center text-sm font-bold flex-shrink-0`}>
-                      {p.name[0]}
-                    </div>
-                    <span className="text-sm text-white flex-1">{p.name}</span>
-                    {/* Mic toggle */}
-                    <button
-                      onClick={() => isFake && toggleFakeAudio(p.id)}
-                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${audio ? "bg-white/10 hover:bg-white/20" : "bg-red-600/80 hover:bg-red-600"} ${!isFake ? "opacity-40 cursor-default" : "cursor-pointer"}`}
-                      title={audio ? "Mute" : "Unmute"}
-                    >
-                      {audio ? <MicIcon /> : <MicOffIcon />}
-                    </button>
-                    {/* Camera toggle */}
-                    <button
-                      onClick={() => isFake && toggleFakeVideo(p.id)}
-                      className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${video ? "bg-white/10 hover:bg-white/20" : "bg-red-600/80 hover:bg-red-600"} ${!isFake ? "opacity-40 cursor-default" : "cursor-pointer"}`}
-                      title={video ? "Camera off" : "Camera on"}
-                    >
-                      {video ? <CamIcon /> : <CamOffIcon />}
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <button onClick={onJoin} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors text-base">
-            Join Now
+        {/* Controls */}
+        <div className="flex gap-3">
+          <button onClick={onToggleAudio} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${audioOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`}>
+            {audioOn ? <MicIcon /> : <MicOffIcon />}
+          </button>
+          <button onClick={onToggleVideo} className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${videoOn ? "bg-white/10 hover:bg-white/20" : "bg-red-600 hover:bg-red-700"}`}>
+            {videoOn ? <CamIcon /> : <CamOffIcon />}
           </button>
         </div>
+
+        {/* Room code */}
+        <div className="w-full">
+          <p className="text-gray-400 text-xs mb-1">Room code</p>
+          <p className="font-mono text-white bg-white/5 border border-white/10 px-3 py-2 rounded-lg text-sm">{roomCode}</p>
+        </div>
+
+        <button onClick={onJoin} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl transition-colors text-base">
+          Join Now
+        </button>
       </div>
     </div>
   );
@@ -611,7 +556,6 @@ export default function RoomPage() {
         onToggleVideo={toggleVideo}
         onJoin={handleJoinFromLobby}
         roomCode={roomCode}
-        lobbyPeers={lobbyPeers}
       />
     );
   }
@@ -634,8 +578,9 @@ export default function RoomPage() {
   }
 
   const allTiles = [
-    { id: "local", name: `${userName} (You)`, stream: localStream ?? undefined, audioOn, videoOn, muted: true },
-    ...peers.map((p) => ({ id: p.id, name: p.name, stream: p.stream, audioOn: p.audio, videoOn: p.video, muted: false })),
+    { id: "local", name: `${userName} (You)`, stream: localStream ?? undefined, audioOn, videoOn, muted: true, dragon: undefined },
+    ...FAKE_PARTICIPANTS.map((p) => ({ id: p.id, name: p.name, stream: undefined, audioOn: true, videoOn: false, muted: true, dragon: p.dragon })),
+    ...peers.map((p) => ({ id: p.id, name: p.name, stream: p.stream, audioOn: p.audio, videoOn: p.video, muted: false, dragon: undefined })),
   ];
 
   const gridCols =
@@ -686,6 +631,7 @@ export default function RoomPage() {
               muted={tile.muted}
               audioOn={tile.audioOn}
               videoOn={tile.videoOn}
+              dragon={tile.dragon}
             />
           ))}
         </div>
