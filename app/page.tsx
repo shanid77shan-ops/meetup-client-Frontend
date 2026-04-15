@@ -142,6 +142,23 @@ export default function Home() {
             {tab === "create" ? "Create & Join Meeting" : "Join Meeting"}
           </button>
 
+          {/* Enter Lobby button */}
+          <button
+            onClick={() => {
+              if (!name.trim()) { setError("Please enter your name."); return; }
+              const code = tab === "join" ? roomCode.trim().toLowerCase() : generateRoomCode();
+              if (tab === "join" && !code) { setError("Please enter a room code."); return; }
+              router.push(`/room/${code}?name=${encodeURIComponent(name.trim())}&lobby=true`);
+            }}
+            className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Enter Lobby
+          </button>
+
           {tab === "create" && (
             <p className="text-center text-xs text-gray-500">
               A unique room code will be generated for you to share.

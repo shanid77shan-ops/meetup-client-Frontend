@@ -123,9 +123,9 @@ function VideoTile({
 }
 
 const FAKE_PARTICIPANTS = [
-  { id: "fake-1", name: "Alex", color: "bg-purple-600", audio: true, video: false },
-  { id: "fake-2", name: "Sara", color: "bg-green-600", audio: false, video: false },
-  { id: "fake-3", name: "James", color: "bg-orange-500", audio: true, video: false },
+  { id: "fake-1", name: "亚历克斯", color: "bg-purple-600", audio: true, video: false },
+  { id: "fake-2", name: "莎拉", color: "bg-green-600", audio: false, video: false },
+  { id: "fake-3", name: "詹姆斯", color: "bg-orange-500", audio: true, video: false },
 ];
 
 function LobbyScreen({
